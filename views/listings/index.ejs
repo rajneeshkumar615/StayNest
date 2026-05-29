@@ -1,0 +1,173 @@
+<% layout("layouts/boilerplate") %>
+<%=success%>
+
+<style>
+  #filters {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .filter {
+    text-align: center;
+    margin-right: 2rem;
+    margin-top: 2rem;
+    opacity: 0.8;
+    cursor: pointer;
+    transition: opacity 0.3s ease;
+  }
+
+  .filter:hover {
+    opacity: 1;
+    cursor: pointer;
+  }
+
+  .filter.active {
+    opacity: 1;
+    border-bottom: 3px solid #fe424d;
+    padding-bottom: 0.5rem;
+  }
+
+  .tax-info {
+    display: none;
+  }
+
+  .tax-toggle {
+    border: 1px solid black;
+    border-radius: 1rem;
+    height: 2.5rem;
+    padding: 1rem;
+    margin-left: 1rem;
+    display: flex;
+    align-items: center;
+    margin-top: 2rem;
+  }
+</style>
+<div id="filters">
+  <div class="filter" data-category="Trending">
+    <div><i class="fa-solid fa-fire"></i></div>
+    <p>Trending</p>
+  </div>
+
+  <div class="filter" data-category="Rooms">
+    <div><i class="fa-solid fa-bed"></i></div>
+    <p>Rooms</p>
+  </div>
+
+  <div class="filter" data-category="Iconic Cities">
+    <div><i class="fa-solid fa-mountain-city"></i></div>
+    <p>Iconic Cities</p>
+  </div>
+
+  <div class="filter" data-category="Mountains">
+    <div><i class="fa-solid fa-mountain"></i></div>
+    <p>Mountains</p>
+  </div>
+
+  <div class="filter" data-category="Castles">
+    <div><i class="fa-solid fa-chess-rook"></i></div>
+    <p>Castles</p>
+  </div>
+
+  <div class="filter" data-category="Amazing pools">
+    <div><i class="fa-solid fa-person-swimming"></i></div>
+    <p>Amazing pools</p>
+  </div>
+
+  <div class="filter" data-category="Camping">
+    <div><i class="fa-solid fa-campground"></i></div>
+    <p>Camping</p>
+  </div>
+
+  <div class="filter" data-category="Farms">
+    <div><i class="fa-solid fa-cow"></i></div>
+    <p>Farms</p>
+  </div>
+
+  <div class="filter" data-category="Doms">
+    <div><i class="fa-solid fa-igloo"></i></div>
+    <p>Doms</p>
+  </div>
+
+  <!-- <div class="filter">
+        <div><i class="fa-solid fa-sailboat"></i></div>
+        <p>Boats</p>
+    </div> -->
+
+  <div class="tax-toggle">
+    <div class="form-check-reverse form-switch">
+      <input class="form-check-input" type="checkbox" role="switch" id="switchCheckDefault" />
+      <label class="form-check-label" for="switchCheckDefault">Display total after taxes</label>
+    </div>
+  </div>
+</div>
+
+<% if(listings.length === 0) { %>
+<div class="alert alert-info" role="alert">
+  No listings found. Try a different search or category!
+</div>
+<% } %>
+
+<div class="row row-cols-lg-3 row-cols-md-2 row-cols-sm-1">
+  <% for(let listing of listings) { %>
+  <a href="/listings/<%=listing._id %>" class="listing-link">
+    <div class="card col mb-3 listing-card">
+      <img
+        src="<%= listing.image.url ? listing.image.url : listing.image %>"
+        class="card-img-top"
+      />
+      <div class="card-img-overlay"></div>
+      <div class="card-body">
+        <p class="card-text">
+          <b><%=listing.title %><br /></b>
+          ₹
+          <%= listing.price.toLocaleString("en-IN") %>
+          /night
+          <i class="tax-info"
+            >&nbsp; &nbsp;+18% GST (₹<%= Math.round(listing.price * 0.18).toLocaleString("en-IN")
+            %>)</i
+          >
+        </p>
+      </div>
+    </div>
+  </a>
+  <% } %>
+</div>
+
+<script>
+  // Category filter functionality
+  const categoryFilters = document.querySelectorAll('.filter[data-category]');
+
+  categoryFilters.forEach(filter => {
+    filter.addEventListener('click', () => {
+      const category = filter.getAttribute('data-category');
+      window.location.href = `/listings?category=${encodeURIComponent(category)}`;
+    });
+  });
+
+  // Highlight active category from URL
+  const urlParams = new URLSearchParams(window.location.search);
+  const activeCategory = urlParams.get('category');
+
+  if (activeCategory && activeCategory !== 'all') {
+    categoryFilters.forEach(filter => {
+      if (filter.getAttribute('data-category') === activeCategory) {
+        filter.classList.add('active');
+      }
+    });
+  }
+
+  // GST toggle functionality
+  let taxSwitch = document.getElementById('switchCheckDefault');
+  taxSwitch.addEventListener('click', () => {
+    let taxInfo = document.querySelectorAll('.tax-info');
+    taxInfo.forEach(el => {
+      if (taxSwitch.checked) {
+        el.style.display = 'inline';
+      } else {
+        el.style.display = 'none';
+      }
+    });
+  });
+</script>
