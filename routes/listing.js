@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 
 const wrapAsync = require('../utils/wrapAsync');
-const { isLoggedIn, isOwner, validateListing } = require('../middleware');
+const { isLoggedIn, isOwner, validateListing } = require('../middlewareHandler');
 const listingControllers = require('../controllers/listing');
 
 const multer = require('multer');
