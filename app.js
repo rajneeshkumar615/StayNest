@@ -148,6 +148,10 @@ app.use((err, req, res, next) => {
 // ===============================
 // Start Server
 // ===============================
-app.listen(port, () => {
-  console.log(`App is listening on port ${port}`);
-});
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(port, () => {
+    console.log(`App is listening on port ${port}`);
+  });
+}
+
+module.exports = app;
