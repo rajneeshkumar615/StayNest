@@ -72,12 +72,12 @@
       <div class="navbar-nav ms-auto">
         <a class="nav-link" href="/listings/new">Add New Listing</a>
 
-        <% if(!curr) { %>
+        <% if (typeof curr === 'undefined' || !curr) { %>
         <a class="nav-link" href="/signup"><b>Sign Up</b></a>
         <a class="nav-link" href="/login"><b>Log In</b></a>
         <% } %>
 
-        <% if(curr) { %>
+        <% if (typeof curr !== 'undefined' && curr) { %>
         <a class="nav-link" href="/logout"><b>Log out</b></a>
         <% } %>
       </div>

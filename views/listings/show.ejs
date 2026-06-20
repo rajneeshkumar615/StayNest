@@ -38,7 +38,7 @@
   </div>
 
   <!-- Edit + Delete Buttons (Only Owner) -->
-  <% if(curr && curr._id.equals(listing.owner._id)) { %>
+  <% if (typeof curr !== 'undefined' && curr && listing.owner && curr._id && curr._id.toString() === listing.owner._id.toString()) { %>
   <div class="col-6 offset-2 mt-3">
     <a href="/listings/<%= listing._id %>/edit" class="btn btn-dark me-2">Edit</a>
 
@@ -53,7 +53,7 @@
   <% } %>
 
   <!-- Review Section -->
-  <% if(curr) { %>
+  <% if (typeof curr !== 'undefined' && curr) { %>
   <div class="col-8 offset-2 mt-4">
     <hr />
     <h4>Leave a Review</h4>
@@ -135,7 +135,7 @@
           </p>
         </div>
 
-        <% if(curr && review.author && curr._id.equals(review.author._id)) { %>
+        <% if (typeof curr !== 'undefined' && curr && review.author && curr._id && curr._id.toString() === review.author._id.toString()) { %>
         <form
           action="/listings/<%= listing._id %>/reviews/<%= review._id %>?_method=DELETE"
           method="POST"
