@@ -66,8 +66,13 @@ module.exports.createListing = async (req, res) => {
   const newListing = new Listing(req.body.listing);
 
   newListing.owner = req.user._id;
+  // Support both Cloudinary (req.file.path is a remote URL) and local disk storage
+  const imageUrl = req.file.path && String(req.file.path).startsWith('http')
+    ? req.file.path
+    : `/uploads/${req.file.filename}`;
+
   newListing.image = {
-    url: req.file.path,
+    url: imageUrl,
     filename: req.file.filename,
   };
 
@@ -106,8 +111,12 @@ module.exports.updateListing = async (req, res) => {
   }
 
   if (req.file) {
+    const imageUrl = req.file.path && String(req.file.path).startsWith('http')
+      ? req.file.path
+      : `/uploads/${req.file.filename}`;
+
     listing.image = {
-      url: req.file.path,
+      url: imageUrl,
       filename: req.file.filename,
     };
 

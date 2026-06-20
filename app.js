@@ -62,6 +62,8 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(methodOverride("_method"));
 app.use(express.static(path.join(__dirname, "public")));
+// Serve local uploads when Cloudinary is not used
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // ===============================
 // SESSION CONFIG (Vercel-safe minimal)

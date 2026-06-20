@@ -28,6 +28,22 @@ module.exports.saveRedirectUrl = (req, res, next) => {
 
 // Validate Listing
 module.exports.validateListing = (req, res, next) => {
+  // Multer (multipart/form-data) may produce flat field names like "listing[title]".
+  // Normalize those into `req.body.listing` so the Joi schema (which expects { listing: { ... } }) works.
+  if (!req.body.listing) {
+    const listing = {};
+    for (const key of Object.keys(req.body || {})) {
+      const match = key.match(/^listing\[(.+)\]$/);
+      if (match) {
+        listing[match[1]] = req.body[key];
+      }
+    }
+
+    if (Object.keys(listing).length > 0) {
+      req.body.listing = listing;
+    }
+  }
+
   const { error } = listingSchema.validate(req.body);
 
   if (error) {
