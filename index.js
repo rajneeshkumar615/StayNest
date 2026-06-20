@@ -1,3 +1,8 @@
 // Compatibility entrypoint so `node index.js` works from project root
-// This file defers to the main app at `app.js`.
-require('./app');
+// This file defers to the main app at `app.js` and starts the server.
+const app = require('./app');
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+	console.log(`Server running on http://localhost:${PORT}`);
+});

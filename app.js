@@ -97,6 +97,8 @@ app.use((req, res, next) => {
   res.locals.success = req.flash("success");
   res.locals.error = req.flash("error");
   res.locals.currUser = req.user;
+  // `navbar.ejs` expects `curr` — provide it for templates that use that name
+  res.locals.curr = req.user;
   next();
 });
 
@@ -144,4 +146,12 @@ app.use((err, req, res, next) => {
 // ===============================
 // EXPORT (IMPORTANT FOR VERCEL)
 // ===============================
+// Start server when this file is run directly (local/dev)
+if (require.main === module) {
+  const PORT = process.env.PORT || 3000;
+  app.listen(PORT, () => {
+    console.log(`Server running on http://localhost:${PORT}`);
+  });
+}
+
 module.exports = app;
