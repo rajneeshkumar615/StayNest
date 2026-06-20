@@ -14,6 +14,7 @@ const mongoose = require("mongoose");
 const path = require("path");
 const methodOverride = require("method-override");
 const ejsMate = require("ejs-mate");
+const { uploadDir } = require("./cloudConfig");
 
 // ===============================
 // ROUTES
@@ -62,8 +63,10 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(methodOverride("_method"));
 app.use(express.static(path.join(__dirname, "public")));
-// Serve local uploads when Cloudinary is not used
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// Serve local uploads when Cloudinary is not used; Vercel can write only to /tmp.
+if (uploadDir) {
+  app.use('/uploads', express.static(uploadDir));
+}
 
 // ===============================
 // SESSION CONFIG (Vercel-safe minimal)
