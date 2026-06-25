@@ -3,110 +3,87 @@ const Listing = require("./models/listing");
 const ExpressError = require("./utils/ExpressError");
 const { listingSchema, reviewSchema } = require("./schema");
 
-
+// ===============================
+// LOGIN CHECK
+// ===============================
 module.exports.isLoggedIn = (req, res, next) => {
   if (!req.isAuthenticated || !req.isAuthenticated()) {
-    req.session.returnTo = req.originalUrl || req.url;
+    req.session.returnTo = req.originalUrl;
     req.flash("error", "You must be signed in");
     return res.redirect("/login");
   }
-
   next();
 };
 
-
-// Save redirect URL
+// ===============================
+// SAVE REDIRECT URL
+// ===============================
 module.exports.saveRedirectUrl = (req, res, next) => {
   if (req.session && req.session.returnTo) {
     res.locals.redirectUrl = req.session.returnTo;
     delete req.session.returnTo;
   }
-
   next();
 };
 
-
-// Validate Listing
+// ===============================
+// VALIDATE LISTING
+// ===============================
 module.exports.validateListing = (req, res, next) => {
-  // Multer (multipart/form-data) may produce flat field names like "listing[title]".
-  // Normalize those into `req.body.listing` so the Joi schema (which expects { listing: { ... } }) works.
-  if (!req.body.listing) {
-    const listing = {};
-    for (const key of Object.keys(req.body || {})) {
-      const match = key.match(/^listing\[(.+)\]$/);
-      if (match) {
-        listing[match[1]] = req.body[key];
-      }
-    }
-
-    if (Object.keys(listing).length > 0) {
-      req.body.listing = listing;
-    }
-  }
-
   const { error } = listingSchema.validate(req.body);
-
   if (error) {
-    const msg = error.details.map((el) => el.message).join(", ");
+    const msg = error.details.map((e) => e.message).join(",");
     throw new ExpressError(400, msg);
   }
-
   next();
 };
 
-
-// Validate Review
+// ===============================
+// VALIDATE REVIEW
+// ===============================
 module.exports.validateReview = (req, res, next) => {
   const { error } = reviewSchema.validate(req.body);
-
   if (error) {
-    const msg = error.details.map((el) => el.message).join(", ");
+    const msg = error.details.map((e) => e.message).join(",");
     throw new ExpressError(400, msg);
   }
-
   next();
 };
 
-
-// Check Listing Owner
+// ===============================
+// CHECK LISTING OWNER
+// ===============================
 module.exports.isOwner = async (req, res, next) => {
-  const { id } = req.params;
-
-  const listing = await Listing.findById(id);
+  const listing = await Listing.findById(req.params.id);
 
   if (!listing) {
     req.flash("error", "Listing not found");
     return res.redirect("/listings");
   }
 
-
   if (!req.user || !listing.owner.equals(req.user._id)) {
-    req.flash("error", "You do not have permission to do that");
-    return res.redirect(`/listings/${id}`);
+    req.flash("error", "Not allowed");
+    return res.redirect(`/listings/${req.params.id}`);
   }
 
   next();
 };
 
-
-// Check Review Owner
+// ===============================
+// CHECK REVIEW OWNER
+// ===============================
 module.exports.isReviewOwner = async (req, res, next) => {
-  const { id, reviewId } = req.params;
-
-  const review = await Review.findById(reviewId);
-
+  const review = await Review.findById(req.params.reviewId);
 
   if (!review) {
-    req.flash("error", "Review not found!");
-    return res.redirect(`/listings/${id}`);
+    req.flash("error", "Review not found");
+    return res.redirect("back");
   }
-
 
   if (!req.user || !review.author.equals(req.user._id)) {
-    req.flash("error", "You are not the author of this review!");
-    return res.redirect(`/listings/${id}`);
+    req.flash("error", "Not allowed");
+    return res.redirect("back");
   }
-
 
   next();
 };
