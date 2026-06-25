@@ -45,7 +45,7 @@ if (!process.env.MONGO_URI) {
 mongoose
   .connect(process.env.MONGO_URI)
   .then(() => console.log("MongoDB connected"))
-  .catch(err => console.log("MongoDB error:", err));
+  .catch((err) => console.log("MongoDB error:", err));
 
 // ===============================
 // VIEW ENGINE
@@ -55,7 +55,7 @@ app.set("views", path.join(__dirname, "views"));
 app.engine("ejs", ejsMate);
 
 // ===============================
-// MIDDLEWARE
+// BASIC MIDDLEWARE
 // ===============================
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
@@ -67,49 +67,45 @@ if (uploadDir) {
 }
 
 // ===============================
-// TRUST PROXY (Vercel)
+// IMPORTANT FOR VERCEL
 // ===============================
 app.set("trust proxy", 1);
 
 // ===============================
-// SESSION STORE
+// SESSION STORE (MONGODB)
 // ===============================
 const store = MongoStore.create({
   mongoUrl: process.env.MONGO_URI,
   dbName: "StayNest",
-  touchAfter: 24 * 3600,
-  crypto: {
-    secret: process.env.SECRET || "devsecret",
-  },
+  ttl: 24 * 60 * 60, // 1 day
 });
 
 store.on("error", (err) => {
-  console.log("SESSION ERROR:", err);
+  console.log("SESSION STORE ERROR:", err);
 });
 
 // ===============================
-// SESSION CONFIG (FIXED)
+// SESSION CONFIG (FINAL FIX)
 // ===============================
-const isProd = process.env.NODE_ENV === "production";
+app.use(
+  session({
+    store,
+    secret: process.env.SECRET,
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      httpOnly: true,
+      secure: true,        // MUST be true on Vercel
+      sameSite: "none",    // REQUIRED for cross-site cookies
+      maxAge: 24 * 60 * 60 * 1000,
+    },
+  })
+);
 
-const sessionOptions = {
-  store,
-  secret: process.env.SECRET || "devsecret",
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    httpOnly: true,
-    secure: isProd,          // FIX
-    sameSite: isProd ? "none" : "lax",  // FIX
-    maxAge: 7 * 24 * 60 * 60 * 1000,
-  },
-};
-
-app.use(session(sessionOptions));
 app.use(flash());
 
 // ===============================
-// PASSPORT
+// PASSPORT CONFIG
 // ===============================
 app.use(passport.initialize());
 app.use(passport.session());
@@ -141,7 +137,7 @@ app.use("/listings/:id/reviews", reviews);
 app.use("/", user);
 
 // ===============================
-// 404
+// 404 HANDLER
 // ===============================
 app.all("*", (req, res, next) => {
   next(new ExpressError(404, "Page Not Found"));
@@ -151,12 +147,13 @@ app.all("*", (req, res, next) => {
 // ERROR HANDLER
 // ===============================
 app.use((err, req, res, next) => {
+  console.error(err);
   let { statusCode = 500, message = "Something went wrong" } = err;
   res.status(statusCode).render("error", { message, err });
 });
 
 // ===============================
-// START SERVER (IMPORTANT)
+// SERVER (LOCAL ONLY)
 // ===============================
 const PORT = process.env.PORT || 8080;
 
@@ -166,5 +163,4 @@ if (require.main === module) {
   });
 }
 
-// ===============================
 module.exports = app;
