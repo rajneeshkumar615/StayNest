@@ -31,6 +31,7 @@ const flash = require("connect-flash");
 const passport = require("passport");
 const LocalStrategy = require("passport-local");
 const User = require("./models/user");
+const MongoStore = require('connect-mongo');
 
 // ===============================
 // CUSTOM ERROR
@@ -71,7 +72,22 @@ if (uploadDir) {
 // ===============================
 // SESSION CONFIG (Vercel-safe minimal)
 // ===============================
+// Trust first proxy when running on platforms like Vercel so secure cookies work
+if (process.env.NODE_ENV === 'production') {
+  app.set('trust proxy', 1);
+}
+
+// Use Mongo-backed session store in production so sessions persist across serverless invocations
+const store = MongoStore.create({
+  mongoUrl: process.env.MONGO_URI,
+  crypto: {
+    secret: process.env.SECRET || 'devsecret',
+  },
+});
+
 const sessionOptions = {
+  store,
+  name: 'session',
   secret: process.env.SECRET || "devsecret",
   resave: false,
   saveUninitialized: false,
@@ -79,6 +95,7 @@ const sessionOptions = {
     httpOnly: true,
     maxAge: 7 * 24 * 60 * 60 * 1000,
     secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
   },
 };
 
