@@ -78,17 +78,29 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 // Use Mongo-backed session store in production so sessions persist across serverless invocations
+const getSecret = () => {
+  if (process.env.NODE_ENV === 'production') {
+    if (!process.env.SECRET) {
+      throw new Error('SECRET environment variable is required in production');
+    }
+    return process.env.SECRET;
+  }
+  return process.env.SECRET || 'devsecret';
+};
+
+const secret = getSecret();
+
 const store = MongoStore.create({
   mongoUrl: process.env.MONGO_URI,
   crypto: {
-    secret: process.env.SECRET || 'devsecret',
+    secret,
   },
 });
 
 const sessionOptions = {
   store,
   name: 'session',
-  secret: process.env.SECRET || "devsecret",
+  secret,
   resave: false,
   saveUninitialized: false,
   cookie: {
