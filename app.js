@@ -81,14 +81,14 @@ if (process.env.NODE_ENV === 'production') {
 const store = MongoStore.create({
   mongoUrl: process.env.MONGO_URI,
   crypto: {
-    secret: process.env.SECRET || 'devsecret',
+    secret: process.env.NODE_ENV === 'production' ? process.env.SECRET : (process.env.SECRET || 'devsecret'),
   },
 });
 
 const sessionOptions = {
   store,
   name: 'session',
-  secret: process.env.SECRET || "devsecret",
+  secret: process.env.NODE_ENV === 'production' ? process.env.SECRET : (process.env.SECRET || "devsecret"),
   resave: false,
   saveUninitialized: false,
   cookie: {
