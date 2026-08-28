@@ -69,6 +69,24 @@ if (uploadDir) {
 // ===============================
 // IMPORTANT FOR VERCEL
 // ===============================
+
+// Startup validation: required environment
+// variables must exist in production.
+if (process.env.NODE_ENV === "production") {
+  if (!process.env.MONGO_URI) {
+    throw new Error(
+      "MONGO_URI environment variable is required in production"
+    );
+  }
+
+  if (!process.env.SECRET) {
+    throw new Error(
+      "SECRET environment variable is required in production"
+    );
+  }
+}
+
+// Trust first proxy when running on platforms like Vercel.
 app.set("trust proxy", 1);
 
 // ===============================
@@ -85,7 +103,7 @@ store.on("error", (err) => {
 });
 
 // ===============================
-// SESSION CONFIG (FINAL FIX)
+// SESSION CONFIG
 // ===============================
 app.use(
   session({
@@ -95,8 +113,8 @@ app.use(
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: true,        // MUST be true on Vercel
-      sameSite: "none",    // REQUIRED for cross-site cookies
+      secure: true,
+      sameSite: "none",
       maxAge: 24 * 60 * 60 * 1000,
     },
   })
@@ -148,7 +166,12 @@ app.all("*", (req, res, next) => {
 // ===============================
 app.use((err, req, res, next) => {
   console.error(err);
-  let { statusCode = 500, message = "Something went wrong" } = err;
+
+  let {
+    statusCode = 500,
+    message = "Something went wrong",
+  } = err;
+
   res.status(statusCode).render("error", { message, err });
 });
 
