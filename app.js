@@ -72,6 +72,16 @@ if (uploadDir) {
 // ===============================
 // SESSION CONFIG (Vercel-safe minimal)
 // ===============================
+// Startup validation: ensure required env vars are set in production
+if (process.env.NODE_ENV === 'production') {
+  if (!process.env.MONGO_URI) {
+    throw new Error('MONGO_URI environment variable is required in production');
+  }
+  if (!process.env.SECRET) {
+    throw new Error('SECRET environment variable is required in production');
+  }
+}
+
 // Trust first proxy when running on platforms like Vercel so secure cookies work
 if (process.env.NODE_ENV === 'production') {
   app.set('trust proxy', 1);
@@ -81,7 +91,7 @@ if (process.env.NODE_ENV === 'production') {
 const store = MongoStore.create({
   mongoUrl: process.env.MONGO_URI,
   crypto: {
-    secret: process.env.SECRET || 'devsecret',
+    secret: process.env.SECRET,
   },
 });
 
