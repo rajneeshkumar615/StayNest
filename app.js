@@ -14,6 +14,15 @@ const mongoose = require("mongoose");
 const path = require("path");
 const methodOverride = require("method-override");
 const ejsMate = require("ejs-mate");
+
+const session = require("express-session");
+const flash = require("connect-flash");
+const passport = require("passport");
+const LocalStrategy = require("passport-local");
+const MongoStore = require("connect-mongo");
+
+const User = require("./models/user");
+const ExpressError = require("./utils/ExpressError");
 const { uploadDir } = require("./cloudConfig");
 
 // ===============================
@@ -24,22 +33,7 @@ const reviews = require("./routes/reviews");
 const user = require("./routes/user");
 
 // ===============================
-// AUTH / SESSION
-// ===============================
-const session = require("express-session");
-const flash = require("connect-flash");
-const passport = require("passport");
-const LocalStrategy = require("passport-local");
-const User = require("./models/user");
-const MongoStore = require('connect-mongo');
-
-// ===============================
-// CUSTOM ERROR
-// ===============================
-const ExpressError = require("./utils/ExpressError");
-
-// ===============================
-// ENV CHECK
+// MONGO CHECK
 // ===============================
 if (!process.env.MONGO_URI) {
   throw new Error("MONGO_URI is missing in environment variables");
@@ -54,62 +48,78 @@ mongoose
   .catch((err) => console.log("MongoDB error:", err));
 
 // ===============================
-// APP CONFIG
+// VIEW ENGINE
 // ===============================
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
 app.engine("ejs", ejsMate);
 
+// ===============================
+// BASIC MIDDLEWARE
+// ===============================
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(methodOverride("_method"));
 app.use(express.static(path.join(__dirname, "public")));
-// Serve local uploads when Cloudinary is not used; Vercel can write only to /tmp.
+
 if (uploadDir) {
-  app.use('/uploads', express.static(uploadDir));
+  app.use("/uploads", express.static(uploadDir));
 }
 
 // ===============================
-// SESSION CONFIG (Vercel-safe minimal)
+// IMPORTANT FOR VERCEL
 // ===============================
-// Startup validation: ensure required env vars are set in production
-if (process.env.NODE_ENV === 'production') {
+
+// Startup validation: required environment
+// variables must exist in production.
+if (process.env.NODE_ENV === "production") {
   if (!process.env.MONGO_URI) {
-    throw new Error('MONGO_URI environment variable is required in production');
+    throw new Error(
+      "MONGO_URI environment variable is required in production"
+    );
   }
+
   if (!process.env.SECRET) {
-    throw new Error('SECRET environment variable is required in production');
+    throw new Error(
+      "SECRET environment variable is required in production"
+    );
   }
 }
 
-// Trust first proxy when running on platforms like Vercel so secure cookies work
-if (process.env.NODE_ENV === 'production') {
-  app.set('trust proxy', 1);
-}
+// Trust first proxy when running on platforms like Vercel.
+app.set("trust proxy", 1);
 
-// Use Mongo-backed session store in production so sessions persist across serverless invocations
+// ===============================
+// SESSION STORE (MONGODB)
+// ===============================
 const store = MongoStore.create({
   mongoUrl: process.env.MONGO_URI,
-  crypto: {
-    secret: process.env.SECRET,
-  },
+  dbName: "StayNest",
+  ttl: 24 * 60 * 60, // 1 day
 });
 
-const sessionOptions = {
-  store,
-  name: 'session',
-  secret: process.env.SECRET || "devsecret",
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    httpOnly: true,
-    maxAge: 7 * 24 * 60 * 60 * 1000,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-  },
-};
+store.on("error", (err) => {
+  console.log("SESSION STORE ERROR:", err);
+});
 
-app.use(session(sessionOptions));
+// ===============================
+// SESSION CONFIG
+// ===============================
+app.use(
+  session({
+    store,
+    secret: process.env.SECRET,
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      httpOnly: true,
+      secure: true,
+      sameSite: "none",
+      maxAge: 24 * 60 * 60 * 1000,
+    },
+  })
+);
+
 app.use(flash());
 
 // ===============================
@@ -123,13 +133,12 @@ passport.serializeUser(User.serializeUser());
 passport.deserializeUser(User.deserializeUser());
 
 // ===============================
-// GLOBAL LOCALS
+// LOCALS
 // ===============================
 app.use((req, res, next) => {
   res.locals.success = req.flash("success");
   res.locals.error = req.flash("error");
   res.locals.currUser = req.user;
-  // `navbar.ejs` expects `curr` — provide it for templates that use that name
   res.locals.curr = req.user;
   next();
 });
@@ -148,7 +157,7 @@ app.use("/", user);
 // ===============================
 // 404 HANDLER
 // ===============================
-app.use((req, res, next) => {
+app.all("*", (req, res, next) => {
   next(new ExpressError(404, "Page Not Found"));
 });
 
@@ -158,29 +167,20 @@ app.use((req, res, next) => {
 app.use((err, req, res, next) => {
   console.error(err);
 
-  let { statusCode = 500, message = "Something went wrong" } = err;
-
-  if (err.name === "ValidationError") {
-    statusCode = 400;
-    message = Object.values(err.errors)
-      .map((e) => e.message)
-      .join(", ");
-  }
-
-  if (err.code === 11000) {
-    statusCode = 400;
-    message = "Duplicate key error";
-  }
+  let {
+    statusCode = 500,
+    message = "Something went wrong",
+  } = err;
 
   res.status(statusCode).render("error", { message, err });
 });
 
 // ===============================
-// EXPORT (IMPORTANT FOR VERCEL)
+// SERVER (LOCAL ONLY)
 // ===============================
-// Start server when this file is run directly (local/dev)
+const PORT = process.env.PORT || 8080;
+
 if (require.main === module) {
-  const PORT = process.env.PORT || 3000;
   app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
   });
