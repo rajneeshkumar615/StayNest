@@ -1,3 +1,4 @@
+
 // ===============================
 // ENV CONFIG
 // ===============================
@@ -33,10 +34,14 @@ const reviews = require("./routes/reviews");
 const user = require("./routes/user");
 
 // ===============================
-// MONGO CHECK
+// ENV CHECK
 // ===============================
 if (!process.env.MONGO_URI) {
   throw new Error("MONGO_URI is missing in environment variables");
+}
+
+if (process.env.NODE_ENV === "production" && !process.env.SECRET) {
+  throw new Error("SECRET environment variable is required in production");
 }
 
 // ===============================
@@ -85,7 +90,7 @@ store.on("error", (err) => {
 });
 
 // ===============================
-// SESSION CONFIG (FINAL FIX)
+// SESSION CONFIG
 // ===============================
 app.use(
   session({
@@ -95,8 +100,8 @@ app.use(
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: true,        // MUST be true on Vercel
-      sameSite: "none",    // REQUIRED for cross-site cookies
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
       maxAge: 24 * 60 * 60 * 1000,
     },
   })
@@ -148,8 +153,16 @@ app.all("*", (req, res, next) => {
 // ===============================
 app.use((err, req, res, next) => {
   console.error(err);
-  let { statusCode = 500, message = "Something went wrong" } = err;
-  res.status(statusCode).render("error", { message, err });
+
+  const {
+    statusCode = 500,
+    message = "Something went wrong",
+  } = err;
+
+  res.status(statusCode).render("error", {
+    message,
+    err,
+  });
 });
 
 // ===============================
