@@ -34,6 +34,17 @@ const User = require("./models/user");
 const MongoStore = require('connect-mongo');
 
 // ===============================
+// STARTUP VALIDATION
+// ===============================
+const requiredEnvVars = ['MONGO_URI', 'SECRET'];
+const missing = requiredEnvVars.filter(v => !process.env[v]);
+if (missing.length > 0) {
+  console.error('❌ Missing required environment variables:', missing.join(', '));
+  console.error('Please set them in your environment or .env file.');
+  process.exit(1);
+}
+
+// ===============================
 // CUSTOM ERROR
 // ===============================
 const ExpressError = require("./utils/ExpressError");
