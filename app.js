@@ -33,6 +33,16 @@ const LocalStrategy = require("passport-local");
 const User = require("./models/user");
 const MongoStore = require('connect-mongo');
 
+// Startup validation for production environment
+if (process.env.NODE_ENV === 'production') {
+  if (!process.env.MONGO_URI) {
+    throw new Error('MONGO_URI environment variable is required in production');
+  }
+  if (!process.env.SECRET) {
+    throw new Error('SECRET environment variable is required in production');
+  }
+}
+
 // ===============================
 // CUSTOM ERROR
 // ===============================
