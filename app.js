@@ -78,6 +78,9 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 // Use Mongo-backed session store in production so sessions persist across serverless invocations
+if (process.env.NODE_ENV === 'production' && !process.env.MONGO_URI) {
+  throw new Error('MONGO_URI environment variable is required in production');
+}
 const store = MongoStore.create({
   mongoUrl: process.env.MONGO_URI,
   crypto: {
