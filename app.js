@@ -72,9 +72,9 @@ if (uploadDir) {
 // ===============================
 // SESSION CONFIG (Vercel-safe minimal)
 // ===============================
-// Trust first proxy when running on platforms like Vercel so secure cookies work
+// Trust first two proxies when running on platforms like Vercel behind Cloudflare so secure cookies work
 if (process.env.NODE_ENV === 'production') {
-  app.set('trust proxy', 1);
+  app.set('trust proxy', 2);
 }
 
 // Use Mongo-backed session store in production so sessions persist across serverless invocations
