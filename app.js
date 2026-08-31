@@ -1,4 +1,3 @@
-
 // ===============================
 // ENV CONFIG
 // ===============================
@@ -34,14 +33,28 @@ const reviews = require("./routes/reviews");
 const user = require("./routes/user");
 
 // ===============================
-// ENV CHECK
+// PRODUCTION ENV VALIDATION
+// ===============================
+if (process.env.NODE_ENV === "production") {
+  if (!process.env.MONGO_URI) {
+    throw new Error(
+      "MONGO_URI environment variable is required in production"
+    );
+  }
+
+  if (!process.env.SECRET) {
+    throw new Error("SECRET environment variable is required in production");
+  }
+}
+
+const sessionSecret = process.env.SECRET;
+const secret = sessionSecret || "devsecret";
+
+// ===============================
+// MONGO CHECK
 // ===============================
 if (!process.env.MONGO_URI) {
   throw new Error("MONGO_URI is missing in environment variables");
-}
-
-if (process.env.NODE_ENV === "production" && !process.env.SECRET) {
-  throw new Error("SECRET environment variable is required in production");
 }
 
 // ===============================
@@ -82,7 +95,7 @@ app.set("trust proxy", 1);
 const store = MongoStore.create({
   mongoUrl: process.env.MONGO_URI,
   dbName: "StayNest",
-  ttl: 24 * 60 * 60, // 1 day
+  ttl: 24 * 60 * 60,
 });
 
 store.on("error", (err) => {
@@ -92,20 +105,21 @@ store.on("error", (err) => {
 // ===============================
 // SESSION CONFIG
 // ===============================
-app.use(
-  session({
-    store,
-    secret: process.env.SECRET,
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-      maxAge: 24 * 60 * 60 * 1000,
-    },
-  })
-);
+const sessionOptions = {
+  store,
+  name: "session",
+  secret,
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    maxAge: 24 * 60 * 60 * 1000,
+  },
+};
+
+app.use(session(sessionOptions));
 
 app.use(flash());
 
@@ -153,16 +167,8 @@ app.all("*", (req, res, next) => {
 // ===============================
 app.use((err, req, res, next) => {
   console.error(err);
-
-  const {
-    statusCode = 500,
-    message = "Something went wrong",
-  } = err;
-
-  res.status(statusCode).render("error", {
-    message,
-    err,
-  });
+  let { statusCode = 500, message = "Something went wrong" } = err;
+  res.status(statusCode).render("error", { message, err });
 });
 
 // ===============================
