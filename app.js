@@ -83,6 +83,7 @@ const store = MongoStore.create({
   crypto: {
     secret: process.env.SECRET || 'devsecret',
   },
+  ttl: 7 * 24 * 60 * 60, // 7 days in seconds, matches cookie maxAge
 });
 
 const sessionOptions = {
