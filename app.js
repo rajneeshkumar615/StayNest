@@ -89,6 +89,8 @@ const store = MongoStore.create({
   },
 });
 
+const secret = process.env.SECRET || 'devsecret';
+
 const sessionOptions = {
   store,
   name: 'session',
