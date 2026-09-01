@@ -56,6 +56,9 @@ const secret = sessionSecret || "devsecret";
 if (!process.env.MONGO_URI) {
   throw new Error("MONGO_URI is missing in environment variables");
 }
+if (!process.env.SECRET) {
+  throw new Error("SECRET is missing in environment variables");
+}
 
 // ===============================
 // DB CONNECTION
