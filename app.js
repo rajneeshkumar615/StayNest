@@ -83,6 +83,8 @@ const store = MongoStore.create({
   crypto: {
     secret: process.env.SECRET || 'devsecret',
   },
+  ttl: 14 * 24 * 60 * 60 * 1000,
+  maxPoolSize: 1,
 });
 
 const sessionOptions = {
