@@ -77,16 +77,27 @@ if (process.env.NODE_ENV === 'production') {
   app.set('trust proxy', 1);
 }
 
-// Use Mongo-backed session store in production so sessions persist across serverless invocations
-const store = MongoStore.create({
-  mongoUrl: process.env.MONGO_URI,
-  crypto: {
-    secret: process.env.SECRET || 'devsecret',
-  },
-});
+// Conditionally create MongoStore only in production
+let store;
+if (process.env.NODE_ENV === 'production') {
+  // Ensure required env vars are present
+  if (!process.env.MONGO_URI) {
+    throw new Error("MONGO_URI is missing in environment variables");
+  }
+  if (!process.env.SECRET) {
+    throw new Error("SECRET is missing in environment variables");
+  }
+  // Trust first proxy when running on platforms like Vercel so secure cookies work
+  app.set('trust proxy', 1);
+  store = MongoStore.create({
+    mongoUrl: process.env.MONGO_URI,
+    crypto: {
+      secret: process.env.SECRET,
+    },
+  });
+}
 
 const sessionOptions = {
-  store,
   name: 'session',
   secret: process.env.SECRET || "devsecret",
   resave: false,
@@ -98,6 +109,7 @@ const sessionOptions = {
     sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
   },
 };
+if (store) sessionOptions.store = store;
 
 app.use(session(sessionOptions));
 app.use(flash());
