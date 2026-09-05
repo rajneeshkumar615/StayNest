@@ -77,27 +77,44 @@ if (process.env.NODE_ENV === 'production') {
   app.set('trust proxy', 1);
 }
 
-// Use Mongo-backed session store in production so sessions persist across serverless invocations
-const store = MongoStore.create({
-  mongoUrl: process.env.MONGO_URI,
-  crypto: {
+let sessionOptions;
+if (process.env.NODE_ENV === 'production') {
+  if (!process.env.SECRET) {
+    throw new Error("SECRET is missing in environment variables");
+  }
+  const store = MongoStore.create({
+    mongoUrl: process.env.MONGO_URI,
+    crypto: {
+      secret: process.env.SECRET,
+    },
+  });
+  sessionOptions = {
+    store,
+    name: 'session',
+    secret: process.env.SECRET,
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      httpOnly: true,
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+      secure: true,
+      sameSite: 'none',
+    },
+  };
+} else {
+  sessionOptions = {
+    name: 'session',
     secret: process.env.SECRET || 'devsecret',
-  },
-});
-
-const sessionOptions = {
-  store,
-  name: 'session',
-  secret: process.env.SECRET || "devsecret",
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    httpOnly: true,
-    maxAge: 7 * 24 * 60 * 60 * 1000,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-  },
-};
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      httpOnly: true,
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+      secure: false,
+      sameSite: 'lax',
+    },
+  };
+}
 
 app.use(session(sessionOptions));
 app.use(flash());
