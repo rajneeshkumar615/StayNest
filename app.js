@@ -77,16 +77,22 @@ if (process.env.NODE_ENV === 'production') {
   app.set('trust proxy', 1);
 }
 
-// Use Mongo-backed session store in production so sessions persist across serverless invocations
-const store = MongoStore.create({
-  mongoUrl: process.env.MONGO_URI,
-  crypto: {
-    secret: process.env.SECRET || 'devsecret',
-  },
-});
+// Conditionally create MongoStore only in production to avoid errors when MONGO_URI is missing or invalid
+let store;
+if (process.env.NODE_ENV === 'production') {
+  if (!process.env.SECRET) {
+    throw new Error('SECRET is required in production');
+  }
+  store = MongoStore.create({
+    mongoUrl: process.env.MONGO_URI,
+    crypto: {
+      secret: process.env.SECRET,
+    },
+  });
+}
 
 const sessionOptions = {
-  store,
+  ...(store && { store }),
   name: 'session',
   secret: process.env.SECRET || "devsecret",
   resave: false,
@@ -98,6 +104,14 @@ const sessionOptions = {
     sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
   },
 };
+
+// Add CSRF protection middleware
+const csurf = require('csurf');
+app.use(csurf());
+app.use((req, res, next) => {
+  res.locals.csrfToken = req.csrfToken();
+  next();
+});
 
 app.use(session(sessionOptions));
 app.use(flash());
