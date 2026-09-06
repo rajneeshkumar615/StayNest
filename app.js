@@ -77,16 +77,20 @@ if (process.env.NODE_ENV === 'production') {
   app.set('trust proxy', 1);
 }
 
-// Use Mongo-backed session store in production so sessions persist across serverless invocations
-const store = MongoStore.create({
-  mongoUrl: process.env.MONGO_URI,
-  crypto: {
-    secret: process.env.SECRET || 'devsecret',
-  },
-});
+// Conditionally create MongoStore only in production and when MONGO_URI is available
+let store;
+if (process.env.NODE_ENV === 'production' && process.env.MONGO_URI) {
+  store = MongoStore.create({
+    mongoUrl: process.env.MONGO_URI,
+    crypto: {
+      secret: process.env.SECRET || 'devsecret',
+    },
+  });
+}
 
 const sessionOptions = {
-  store,
+  // Include store only if it was created
+  ...(store && { store }),
   name: 'session',
   secret: process.env.SECRET || "devsecret",
   resave: false,
