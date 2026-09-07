@@ -77,13 +77,25 @@ if (process.env.NODE_ENV === 'production') {
   app.set('trust proxy', 1);
 }
 
-// Use Mongo-backed session store in production so sessions persist across serverless invocations
-const store = MongoStore.create({
-  mongoUrl: process.env.MONGO_URI,
-  crypto: {
-    secret: process.env.SECRET || 'devsecret',
-  },
-});
+// Use Mongo-backed session store in production so sessions persist across serverless invocations.
+// In non-production environments, fall back to an in-memory store to avoid
+// requiring MONGO_URI and to avoid blocking startup with a MongoDB connection.
+let store;
+if (process.env.NODE_ENV === 'production' && process.env.MONGO_URI) {
+  try {
+    store = MongoStore.create({
+      mongoUrl: process.env.MONGO_URI,
+      crypto: {
+        secret: process.env.SECRET,
+      },
+    });
+  } catch (err) {
+    console.error('Failed to create MongoStore, falling back to MemoryStore:', err);
+    store = new session.MemoryStore();
+  }
+} else {
+  store = new session.MemoryStore();
+}
 
 const sessionOptions = {
   store,
