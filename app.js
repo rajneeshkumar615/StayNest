@@ -81,21 +81,21 @@ if (process.env.NODE_ENV === 'production') {
 const store = MongoStore.create({
   mongoUrl: process.env.MONGO_URI,
   crypto: {
-    secret: process.env.SECRET || 'devsecret',
+    secret: process.env.SECRET,
   },
 });
 
 const sessionOptions = {
   store,
   name: 'session',
-  secret: process.env.SECRET || "devsecret",
+  secret: process.env.SECRET,
   resave: false,
   saveUninitialized: false,
   cookie: {
     httpOnly: true,
     maxAge: 7 * 24 * 60 * 60 * 1000,
     secure: process.env.NODE_ENV === "production",
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    sameSite: process.env.NODE_ENV === 'production' ? 'lax' : 'lax',
   },
 };
 
