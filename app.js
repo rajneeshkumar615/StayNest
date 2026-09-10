@@ -81,14 +81,19 @@ if (process.env.NODE_ENV === 'production') {
 const store = MongoStore.create({
   mongoUrl: process.env.MONGO_URI,
   crypto: {
-    secret: process.env.SECRET || 'devsecret',
+    secret: process.env.SECRET,
+  },
+  // Add fallback client options to prevent startup failure if MONGO_URI is unset
+  clientOptions: {
+    serverSelectionTimeoutMS: 5000,
+    socketTimeoutMS: 45000,
   },
 });
 
 const sessionOptions = {
   store,
   name: 'session',
-  secret: process.env.SECRET || "devsecret",
+  secret: process.env.SECRET,
   resave: false,
   saveUninitialized: false,
   cookie: {
