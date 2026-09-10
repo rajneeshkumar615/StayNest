@@ -72,7 +72,9 @@ if (uploadDir) {
 // ===============================
 // SESSION CONFIG (Vercel-safe minimal)
 // ===============================
-// Trust first proxy when running on platforms like Vercel so secure cookies work
+// Trust first proxy only in production: platforms like Vercel terminate TLS at the edge,
+// so Express needs to trust the proxy header to correctly set the `secure` cookie flag.
+// In development, requests come directly from the browser, so trust proxy is unnecessary.
 if (process.env.NODE_ENV === 'production') {
   app.set('trust proxy', 1);
 }
