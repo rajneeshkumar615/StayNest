@@ -45,6 +45,10 @@ if (!process.env.MONGO_URI) {
   throw new Error("MONGO_URI is missing in environment variables");
 }
 
+if (!process.env.SECRET) {
+  throw new Error("SECRET is missing in environment variables");
+}
+
 // ===============================
 // DB CONNECTION
 // ===============================
@@ -81,14 +85,14 @@ if (process.env.NODE_ENV === 'production') {
 const store = MongoStore.create({
   mongoUrl: process.env.MONGO_URI,
   crypto: {
-    secret: process.env.SECRET || 'devsecret',
+    secret: process.env.SECRET,
   },
 });
 
 const sessionOptions = {
   store,
   name: 'session',
-  secret: process.env.SECRET || "devsecret",
+  secret: process.env.SECRET,
   resave: false,
   saveUninitialized: false,
   cookie: {
