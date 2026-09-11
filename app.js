@@ -41,8 +41,17 @@ const ExpressError = require("./utils/ExpressError");
 // ===============================
 // ENV CHECK
 // ===============================
+const isProduction = process.env.NODE_ENV === "production";
+const sessionSecret = process.env.SECRET;
+
 if (!process.env.MONGO_URI) {
-  throw new Error("MONGO_URI is missing in environment variables");
+  throw new Error("MONGO_URI is required");
+}
+if (!sessionSecret) {
+  throw new Error("SECRET is required");
+}
+if (sessionSecret.length < 32) {
+  throw new Error("SECRET must be at least 32 characters");
 }
 
 // ===============================
@@ -51,7 +60,10 @@ if (!process.env.MONGO_URI) {
 mongoose
   .connect(process.env.MONGO_URI)
   .then(() => console.log("MongoDB connected"))
-  .catch((err) => console.log("MongoDB error:", err));
+  .catch((err) => {
+    console.error("MongoDB connection failed:", err);
+    process.exitCode = 1;
+  });
 
 // ===============================
 // APP CONFIG
@@ -72,30 +84,27 @@ if (uploadDir) {
 // ===============================
 // SESSION CONFIG (Vercel-safe minimal)
 // ===============================
-// Trust first proxy when running on platforms like Vercel so secure cookies work
-if (process.env.NODE_ENV === 'production') {
-  app.set('trust proxy', 1);
-}
+// Trust the first proxy hop so secure cookies use the original request scheme.
+app.set('trust proxy', 1);
 
-// Use Mongo-backed session store in production so sessions persist across serverless invocations
-const store = MongoStore.create({
+const sessionStore = MongoStore.create({
   mongoUrl: process.env.MONGO_URI,
   crypto: {
-    secret: process.env.SECRET || 'devsecret',
+    secret: sessionSecret,
   },
 });
 
 const sessionOptions = {
-  store,
+  store: sessionStore,
   name: 'session',
-  secret: process.env.SECRET || "devsecret",
+  secret: sessionSecret,
   resave: false,
   saveUninitialized: false,
   cookie: {
     httpOnly: true,
     maxAge: 7 * 24 * 60 * 60 * 1000,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    secure: isProduction,
+    sameSite: isProduction ? 'none' : 'lax',
   },
 };
 
