@@ -72,18 +72,25 @@ if (uploadDir) {
 // ===============================
 // SESSION CONFIG (Vercel-safe minimal)
 // ===============================
-// Trust first proxy when running on platforms like Vercel so secure cookies work
-if (process.env.NODE_ENV === 'production') {
-  app.set('trust proxy', 1);
-}
 
 // Use Mongo-backed session store in production so sessions persist across serverless invocations
-const store = MongoStore.create({
-  mongoUrl: process.env.MONGO_URI,
-  crypto: {
-    secret: process.env.SECRET || 'devsecret',
-  },
-});
+// Lazy-initialized to avoid cold-start overhead in serverless and to allow graceful fallback
+let store = null;
+
+if (process.env.NODE_ENV === 'production') {
+  app.set('trust proxy', 1);
+
+  const MongoStore = require('connect-mongo');
+  store = MongoStore.create({
+    mongoUrl: process.env.MONGO_URI,
+    crypto: {
+      secret: process.env.SECRET || 'devsecret',
+    },
+  }).catch((err) => {
+    console.error('MongoStore creation failed, falling back to in-memory session store:', err.message);
+    store = null;
+  });
+}
 
 const sessionOptions = {
   store,
