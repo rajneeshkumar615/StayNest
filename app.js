@@ -86,18 +86,21 @@ const store = MongoStore.create({
 });
 
 const sessionOptions = {
-  store,
   name: 'session',
-  secret: process.env.SECRET || "devsecret",
+  secret: process.env.SECRET,
   resave: false,
   saveUninitialized: false,
   cookie: {
     httpOnly: true,
     maxAge: 7 * 24 * 60 * 60 * 1000,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
   },
 };
+
+if (!sessionOptions.secret) {
+  throw new Error('SECRET is required');
+}
 
 app.use(session(sessionOptions));
 app.use(flash());
